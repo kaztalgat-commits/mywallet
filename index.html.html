@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Цифровой кошелёк</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body>
+    <div id="root"></div>
+    
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        function DigitalWallet() {
+          const [currentUser, setCurrentUser] = useState(null);
+          const [username, setUsername] = useState('');
+          const [password, setPassword] = useState('');
+          const [isRegistering, setIsRegistering] = useState(false);
+          const [loginError, setLoginError] = useState('');
+          
+          const [transactions, setTransactions] = useState([]);
+          const [amount, setAmount] = useState('');
+          const [category, setCategory] = useState('');
+          const [type, setType] = useState('expense');
+          const [period, setPeriod] = useState('week');
+          const [showForm, setShowForm] = useState(false);
+          const [isLoading, setIsLoading] = useState(false);
+
+          const categories = {
+            expense: [
+              { name: 'Продукты', icon: '🛒', color: 'bg-green-100 text-green-700' },
+              { name: 'Рестораны и кафе', icon: '☕', color: 'bg-orange-100 text-orange-700' },
+              { name: 'Транспорт', icon: '🚗', color: 'bg-blue-100 text-blue-700' },
+              { name: 'Такси', icon: '🚕', color: 'bg-yellow-100 text-yellow-700' },
+              { name: 'ЖКХ и связь', icon: '🏠', color: 'bg-purple-100 text-purple-700' },
+              { name: 'Здоровье и медицина', icon: '💊', color: 'bg-red-100 text-red-700' },
+              { name: 'Красота и уход', icon: '💄', color: 'bg-pink-100 text-pink-700' },
+              { name: 'Одежда и обувь', icon: '👔', color: 'bg-indigo-100 text-indigo-700' },
+              { name: 'Развлечения', icon: '🎬', color: 'bg-fuchsia-100 text-fuchsia-700' },
+              { name: 'Спорт и фитнес', icon: '💪', color: 'bg-lime-100 text-lime-700' },
+              { name: 'Образование', icon: '📚', color: 'bg-cyan-100 text-cyan-700' },
+              { name: 'Путешествия', icon: '✈️', color: 'bg-sky-100 text-sky-700' },
+              { name: 'Подарки', icon: '🎁', color: 'bg-rose-100 text-rose-700' },
+              { name: 'Электроника', icon: '📱', color: 'bg-slate-100 text-slate-700' },
+              { name: 'Дом и ремонт', icon: '🔧', color: 'bg-amber-100 text-amber-700' },
+              { name: 'Домашние животные', icon: '🐕', color: 'bg-teal-100 text-teal-700' },
+              { name: 'Дети', icon: '👶', color: 'bg-violet-100 text-violet-700' },
+              { name: 'Кредиты и займы', icon: '💳', color: 'bg-gray-100 text-gray-700' },
+              { name: 'Налоги и штрафы', icon: '📋', color: 'bg-red-100 text-red-800' },
+              { name: 'Благотворительность', icon: '❤️', color: 'bg-pink-100 text-pink-800' },
+              { name: 'Другое', icon: '📦', color: 'bg-neutral-100 text-neutral-700' }
+            ],
+            income: [
+              { name: 'Зарплата', icon: '💼', color: 'bg-emerald-100 text-emerald-700' },
+              { name: 'Премия', icon: '🏆', color: 'bg-yellow-100 text-yellow-700' },
+              { name: 'Фриланс', icon: '💻', color: 'bg-blue-100 text-blue-700' },
+              { name: 'Бизнес', icon: '🏢', color: 'bg-indigo-100 text-indigo-700' },
+              { name: 'Инвестиции', icon: '📈', color: 'bg-green-100 text-green-700' },
+              { name: 'Подарки', icon: '🎁', color: 'bg-pink-100 text-pink-700' },
+              { name: 'Возврат долга', icon: '💰', color: 'bg-lime-100 text-lime-700' },
+              { name: 'Продажа', icon: '🛍️', color: 'bg-purple-100 text-purple-700' },
+              { name: 'Другое', icon: '💵', color: 'bg-gray-100 text-gray-700' }
+            ]
+          };
+
+          useEffect(() => {
+            if (currentUser) {
+              loadUserData();
+            }
+          }, [currentUser]);
+
+          const loadUserData = () => {
+            setIsLoading(true);
+            try {
+              const data = localStorage.getItem(`user_transactions_${currentUser}`);
+              if (data) {
+                setTransactions(JSON.parse(data));
+              }
+            } catch (error) {
+              console.error('Ошибка загрузки данных:', error);
+            }
+            setIsLoading(false);
+          };
+
+          const saveUserData = (newTransactions) => {
+            try {
+              localStorage.setItem(`user_transactions_${currentUser}`, JSON.stringify(newTransactions));
+            } catch (error) {
+              console.error('Ошибка сохранения данных:', error);
+            }
+          };
+
+          const handleLogin = () => {
+            if (!username || !password) {
+              setLoginError('Введите логин и пароль');
+              return;
+            }
+
+            setIsLoading(true);
+            setLoginError('');
+
+            try {
+              if (isRegistering) {
+                const existingUser = localStorage.getItem(`user_${username}`);
+                if (existingUser) {
+                  setLoginError('Пользователь с таким логином уже существует');
+                  setIsLoading(false);
+                  return;
+                }
+                localStorage.setItem(`user_${username}`, password);
+                setCurrentUser(username);
+                setUsername('');
+                setPassword('');
+              } else {
+                const storedPassword = localStorage.getItem(`user_${username}`);
+                if (storedPassword === password) {
+                  setCurrentUser(username);
+                  setUsername('');
+                  setPassword('');
+                } else if (storedPassword === null) {
+                  setLoginError('Пользователь не найден');
+                } else {
+                  setLoginError('Неверный пароль');
+                }
+              }
+            } catch (error) {
+              setLoginError('Ошибка при входе. Попробуйте снова.');
+              console.error('Ошибка:', error);
+            }
+            
+            setIsLoading(false);
+          };
+
+          const handleLogout = () => {
+            setCurrentUser(null);
+            setTransactions([]);
+          };
+
+          const addTransaction = () => {
+            if (!amount || !category) return;
+
+            const categoryData = categories[type].find(c => c.name === category);
+
+            const newTransaction = {
+              id: Date.now(),
+              amount: parseFloat(amount),
+              category,
+              categoryIcon: categoryData.icon,
+              categoryColor: categoryData.color,
+              type,
+              date: new Date().toISOString(),
+            };
+
+            const updatedTransactions = [newTransaction, ...transactions];
+            setTransactions(updatedTransactions);
+            saveUserData(updatedTransactions);
+            
+            setAmount('');
+            setCategory('');
+            setShowForm(false);
+          };
+
+          const getFilteredTransactions = () => {
+            const now = new Date();
+            const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            const startOfWeek = new Date(now.setDate(now.getDate() - now.getDay()));
+            const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+            const startOfQuarter = new Date(now.getFullYear(), Math.floor(now.getMonth() / 3) * 3, 1);
+
+            const periodStart = {
+              day: startOfDay,
+              week: startOfWeek,
+              month: startOfMonth,
+              quarter: startOfQuarter
+            }[period];
+
+            return transactions.filter(t => new Date(t.date) >= periodStart);
+          };
+
+          const filteredTransactions = getFilteredTransactions();
+          
+          const totalIncome = filteredTransactions
+            .filter(t => t.type === 'income')
+            .reduce((sum, t) => sum + t.amount, 0);
+          
+          const totalExpense = filteredTransactions
+            .filter(t => t.type === 'expense')
+            .reduce((sum, t) => sum + t.amount, 0);
+          
+          const balance = totalIncome - totalExpense;
+
+          const expensesByCategory = filteredTransactions
+            .filter(t => t.type === 'expense')
+            .reduce((acc, t) => {
+              if (!acc[t.category]) {
+                acc[t.category] = { 
+                  amount: 0, 
+                  icon: t.categoryIcon, 
+                  color: t.categoryColor 
+                };
+              }
+              acc[t.category].amount += t.amount;
+              return acc;
+            }, {});
+
+          const periodNames = {
+            day: 'День',
+            week: 'Неделя',
+            month: 'Месяц',
+            quarter: 'Квартал'
+          };
+
+          if (!currentUser) {
+            return (
+              <div className="min-h-screen bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center p-4">
+                <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md">
+                  <div className="text-center mb-8">
+                    <div className="text-6xl mb-4">💼</div>
+                    <h1 className="text-3xl font-bold text-gray-800 mb-2">
+                      Цифровой кошелёк
+                    </h1>
+                    <p className="text-gray-600">
+                      {isRegistering ? 'Создайте новый аккаунт' : 'Войдите в свой аккаунт'}
+                    </p>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">
+                        Логин
+                      </label>
+                      <input
+                        type="text"
+                        value={username}
+                        onChange={(e) => setUsername(e.target.value)}
+                        onKeyPress={(e) => e.key === 'Enter' && handleLogin()}
+                        placeholder="Введите логин"
+                        className="w-full p-3 border-2 border-gray-300 rounded-lg focus:border-indigo-500 focus:outline-none"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">
+                        Пароль
+                      </label>
+                      <input
+                        type="password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        onKeyPress={(e) => e.key === 'Enter' && handleLogin()}
+                        placeholder="Введите пароль"
+                        className="w-full p-3 border-2 border-gray-300 rounded-lg focus:border-indigo-500 focus:outline-none"
+                      />
+                    </div>
+
+                    {loginError && (
+                      <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+                        {loginError}
+                      </div>
+                    )}
+
+                    <button
+                      onClick={handleLogin}
+                      disabled={isLoading}
+                      className="w-full bg-indigo-600 text-white py-3 rounded-lg font-bold hover:bg-indigo-700 transition disabled:bg-gray-300"
+                    >
+                      {isLoading ? 'Загрузка...' : (isRegistering ? '✅ Зарегистрироваться' : '🔑 Войти')}
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        setIsRegistering(!isRegistering);
+                        setLoginError('');
+                      }}
+                      className="w-full text-indigo-600 py-2 font-semibold hover:text-indigo-800 transition"
+                    >
+                      {isRegistering ? 'Уже есть аккаунт? Войти' : 'Нет аккаунта? Зарегистрироваться'}
+                    </button>
+                  </div>
+
+                  <div className="mt-6 p-4 bg-blue-50 rounded-lg text-sm text-gray-700">
+                    <p className="font-semibold mb-1">💡 Важно:</p>
+                    <p>Каждый пользователь получает свой личный кошелёк. Ваши данные хранятся локально на этом устройстве.</p>
+                  </div>
+                </div>
+              </div>
+            );
+          }
+
+          return (
+            <div className="min-h-screen bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 p-4">
+              <div className="max-w-6xl mx-auto">
+                <div className="text-center mb-6">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex-1"></div>
+                    <h1 className="text-4xl font-bold text-white flex items-center gap-3">
+                      <span className="text-5xl">💰</span>
+                      Мой кошелёк
+                    </h1>
+                    <div className="flex-1 flex justify-end">
+                      <button
+                        onClick={handleLogout}
+                        className="bg-white bg-opacity-20 hover:bg-opacity-30 text-white px-4 py-2 rounded-lg font-semibold transition"
+                      >
+                        🚪 Выйти
+                      </button>
+                    </div>
+                  </div>
+                  <p className="text-white text-opacity-90">
+                    Добро пожаловать, <span className="font-bold">{currentUser}</span>!
+                  </p>
+                </div>
+
+                {isLoading ? (
+                  <div className="bg-white rounded-xl shadow-xl p-12 text-center">
+                    <div className="text-2xl text-gray-600">Загрузка данных...</div>
+                  </div>
+                ) : (
+                  <>
+                    <div className="bg-white rounded-xl shadow-xl p-4 mb-6">
+                      <div className="flex gap-2 flex-wrap justify-center">
+                        {Object.entries(periodNames).map(([key, name]) => (
+                          <button
+                            key={key}
+                            onClick={() => setPeriod(key)}
+                            className={`px-6 py-2 rounded-lg font-bold transition ${
+                              period === key
+                                ? 'bg-indigo-600 text-white'
+                                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                            }`}
+                          >
+                            {name}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                      <div className="bg-green-500 rounded-xl shadow-xl p-6 text-white">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-lg font-semibold">Доходы</span>
+                          <span className="text-3xl">📈</span>
+                        </div>
+                        <div className="text-3xl font-bold">{totalIncome.toLocaleString('ru-RU')} ₸</div>
+                      </div>
+
+                      <div className="bg-red-500 rounded-xl shadow-xl p-6 text-white">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-lg font-semibold">Расходы</span>
+                          <span className="text-3xl">📉</span>
+                        </div>
+                        <div className="text-3xl font-bold">{totalExpense.toLocaleString('ru-RU')} ₸</div>
+                      </div>
+
+                      <div className={`${balance >= 0 ? 'bg-blue-500' : 'bg-orange-500'} rounded-xl shadow-xl p-6 text-white`}>
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-lg font-semibold">Баланс</span>
+                          <span className="text-3xl">💰</span>
+                        </div>
+                        <div className="text-3xl font-bold">{balance.toLocaleString('ru-RU')} ₸</div>
+                      </div>
+                    </div>
+
+                    {Object.keys(expensesByCategory).length > 0 && (
+                      <div className="bg-white rounded-xl shadow-xl p-6 mb-6">
+                        <h2 className="text-2xl font-bold mb-4 text-gray-800">Расходы по категориям</h2>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {Object.entries(expensesByCategory)
+                            .sort((a, b) => b[1].amount - a[1].amount)
+                            .map(([cat, data]) => {
+                              const percentage = (data.amount / totalExpense) * 100;
+                              return (
+                                <div key={cat} className={`p-4 rounded-lg ${data.color} border-2 border-opacity-20`}>
+                                  <div className="flex items-center justify-between mb-2">
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-2xl">{data.icon}</span>
+                                      <span className="font-bold">{cat}</span>
+                                    </div>
+                                    <span className="font-bold text-lg">{data.amount.toLocaleString('ru-RU')} ₸</span>
+                                  </div>
+                                  <div className="w-full bg-white bg-opacity-50 rounded-full h-2">
+                                    <div
+                                      className="bg-current h-2 rounded-full transition-all"
+                                      style={{ width: `${percentage}%` }}
+                                    />
+                                  </div>
+                                  <div className="text-right text-sm font-semibold mt-1">
+                                    {percentage.toFixed(1)}%
+                                  </div>
+                                </div>
+                              );
+                            })}
+                        </div>
+                      </div>
+                    )}
+
+                    {!showForm && (
+                      <button
+                        onClick={() => setShowForm(true)}
+                        className="w-full bg-white rounded-xl shadow-xl p-6 mb-6 hover:shadow-2xl transition flex items-center justify-center gap-3 text-xl font-bold text-gray-800"
+                      >
+                        <span className="text-4xl text-indigo-600">➕</span>
+                        Добавить транзакцию
+                      </button>
+                    )}
+
+                    {showForm && (
+                      <div className="bg-white rounded-xl shadow-xl p-6 mb-6">
+                        <h2 className="text-2xl font-bold mb-4 text-gray-800">Новая транзакция</h2>
+                        
+                        <div className="flex gap-2 mb-4">
+                          <button
+                            onClick={() => { setType('expense'); setCategory(''); }}
+                            className={`flex-1 py-3 rounded-lg font-bold transition ${
+                              type === 'expense'
+                                ? 'bg-red-500 text-white'
+                                : 'bg-gray-200 text-gray-700'
+                            }`}
+                          >
+                            📉 Расход
+                          </button>
+                          <button
+                            onClick={() => { setType('income'); setCategory(''); }}
+                            className={`flex-1 py-3 rounded-lg font-bold transition ${
+                              type === 'income'
+                                ? 'bg-green-500 text-white'
+                                : 'bg-gray-200 text-gray-700'
+                            }`}
+                          >
+                            📈 Доход
+                          </button>
+                        </div>
+
+                        <input
+                          type="number"
+                          value={amount}
+                          onChange={(e) => setAmount(e.target.value)}
+                          placeholder="Сумма"
+                          className="w-full p-4 border-2 border-gray-300 rounded-lg mb-4 text-lg focus:border-indigo-500 focus:outline-none"
+                        />
+
+                        <div className="mb-4">
+                          <label className="block text-sm font-semibold text-gray-700 mb-2">Категория</label>
+                          <div className="grid grid-cols-2 md:grid-cols-3 gap-2 max-h-96 overflow-y-auto p-2">
+                            {categories[type].map(cat => (
+                              <button
+                                key={cat.name}
+                                onClick={() => setCategory(cat.name)}
+                                className={`p-3 rounded-lg font-semibold transition border-2 ${
+                                  category === cat.name
+                                    ? 'border-indigo-500 bg-indigo-50'
+                                    : 'border-gray-200 hover:border-gray-300'
+                                } ${cat.color} flex items-center gap-2`}
+                              >
+                                <span className="text-xl">{cat.icon}</span>
+                                <span className="text-sm">{cat.name}</span>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div className="flex gap-2">
+                          <button
+                            onClick={addTransaction}
+                            className="flex-1 bg-indigo-600 text-white py-4 rounded-lg font-bold hover:bg-indigo-700 transition disabled:bg-gray-300"
+                            disabled={!amount || !category}
+                          >
+                            ✅ Добавить
+                          </button>
+                          <button
+                            onClick={() => setShowForm(false)}
+                            className="flex-1 bg-gray-300 text-gray-700 py-4 rounded-lg font-bold hover:bg-gray-400 transition"
+                          >
+                            ❌ Отмена
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {filteredTransactions.length > 0 && (
+                      <div className="bg-white rounded-xl shadow-xl p-6">
+                        <h2 className="text-2xl font-bold mb-4 text-gray-800">История транзакций</h2>
+                        <div className="space-y-3">
+                          {filteredTransactions.map(t => (
+                            <div
+                              key={t.id}
+                              className={`p-4 rounded-lg ${t.categoryColor} border-l-4 ${
+                                t.type === 'income' ? 'border-green-500' : 'border-red-500'
+                              }`}
+                            >
+                              <div className="flex justify-between items-center">
+                                <div className="flex items-center gap-3">
+                                  <span className="text-3xl">{t.categoryIcon}</span>
+                                  <div>
+                                    <div className="font-bold text-lg">{t.category}</div>
+                                    <div className="text-sm opacity-70">
+                                      {new Date(t.date).toLocaleString('ru-RU', {
+                                        day: 'numeric',
+                                        month: 'short',
+                                        hour: '2-digit',
+                                        minute: '2-digit'
+                                      })}
+                                    </div>
+                                  </div>
+                                </div>
+                                <div className={`text-2xl font-bold ${t.type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
+                                  {t.type === 'income' ? '+' : '-'}{t.amount.toLocaleString('ru-RU')} ₸
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {filteredTransactions.length === 0 && !showForm && (
+                      <div className="bg-white rounded-xl shadow-xl p-12 text-center text-gray-500">
+                        <div className="text-6xl mb-4">📅</div>
+                        <p className="text-xl">Нет транзакций за этот период</p>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            </div>
+          );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<DigitalWallet />);
+    </script>
+</body>
+</html>
